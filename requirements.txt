@@ -1,5 +1,5 @@
-numpy
-flask
-joblib
+Flask
 pandas
-logging
+scikit-learn
+joblib
+gunicorn
