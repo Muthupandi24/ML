@@ -1,3 +1,4 @@
+import os
 import joblib
 import pandas as pd
 import logging
@@ -5,10 +6,10 @@ from flask import Flask, request, jsonify
 
 app = Flask(__name__)
 
-# Setup logging
+# Logging setup
 logging.basicConfig(level=logging.INFO)
 
-# Load model and scaler safely
+# Load model and scaler
 try:
     model = joblib.load('logistic_regression_model.joblib')
     scaler = joblib.load('scaler.joblib')
@@ -17,13 +18,13 @@ except Exception as e:
     logging.error(f"Error loading model/scaler: {e}")
     raise SystemExit("Failed to load model files.")
 
-# Expected columns
+# Required input columns
 REQUIRED_COLUMNS = [
     'Pregnancies', 'Glucose', 'BloodPressure', 'SkinThickness',
     'Insulin', 'BMI', 'DiabetesPedigreeFunction', 'Age'
 ]
 
-# Basic range validation (adjust if needed)
+# Value ranges
 RANGES = {
     'Pregnancies': (0, 20),
     'Glucose': (0, 300),
@@ -49,18 +50,17 @@ def health():
 @app.route('/predict', methods=['POST'])
 def predict():
     try:
-        # Get JSON input
         data = request.get_json()
 
         if not data:
             return jsonify({'error': 'No input data provided'}), 400
 
-        # Check missing fields
+        # Check required fields
         for col in REQUIRED_COLUMNS:
             if col not in data:
                 return jsonify({'error': f'Missing field: {col}'}), 400
 
-        # Convert to DataFrame
+        # Convert input
         try:
             df = pd.DataFrame([data])
             df = df[REQUIRED_COLUMNS].astype(float)
@@ -75,7 +75,7 @@ def predict():
                     'error': f'{col} must be between {min_val} and {max_val}'
                 }), 400
 
-        # Scale input
+        # Scale
         scaled_data = scaler.transform(df)
 
         # Predict
@@ -98,5 +98,7 @@ def predict():
         return jsonify({'error': 'Internal server error'}), 500
 
 
+# Important for deployment
 if __name__ == '__main__':
-    app.run(debug=True)
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host='0.0.0.0', port=port)
